@@ -8,6 +8,8 @@
 #include <string.h>
 #include <stdio.h>
 
+#include "main.h"
+
 static char *itoa(int value, char* result, int base);
 
 // vertex format
@@ -190,24 +192,173 @@ static void render(void)
 	LCD_DisplayStringLine(LCD_LINE_1, info_str);
 	LCD_DisplayStringLine(LCD_LINE_3, fps_str);
 
+	// send to computer by usart 
+    while(USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET);
+    USART1_puts(fps_str);
+    USART1_puts("   ");
+
 	char str[16] = "X: ";
 	itoa(axes[0], str + 3, 10);
 	LCD_DisplayStringLine(LCD_LINE_5, str);
+	
+	// send to computer by usart 
+    while(USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET);
+    USART1_puts(str);
+    USART1_puts("   ");
+
 	str[0] = 'Y';
 	itoa(axes[1], str + 3, 10);
 	LCD_DisplayStringLine(LCD_LINE_6, str);
+
+	// send to computer by usart 
+    while(USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET);
+    USART1_puts(str);
+    USART1_puts("   ");
+
 	str[0] = 'Z';
 	itoa(axes[2], str + 3, 10);
 	LCD_DisplayStringLine(LCD_LINE_7, str);
 
+	// send to computer by usart 
+    while(USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET);
+    USART1_puts(str);
+    USART1_puts("\r\n");
+
 	r3dfb_swap_buffers();
 	fps++;
+}
+
+void RCC_Configuration(void)
+
+{
+
+      /* --------------------------- System Clocks Configuration -----------------*/
+
+      /* USART1 clock enable */
+
+      RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);
+
+      /* GPIOA clock enable */
+
+      RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
+
+}
+
+ 
+
+/**************************************************************************************/
+
+ 
+
+void GPIO_Configuration(void)
+
+{
+
+    GPIO_InitTypeDef GPIO_InitStructure;
+
+
+
+    /*-------------------------- GPIO Configuration ----------------------------*/
+
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9 | GPIO_Pin_10;
+
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+
+    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+
+    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+
+    GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+
+
+    /* Connect USART pins to AF */
+
+    GPIO_PinAFConfig(GPIOA, GPIO_PinSource9, GPIO_AF_USART1);   // USART1_TX
+
+    GPIO_PinAFConfig(GPIOA, GPIO_PinSource10, GPIO_AF_USART1);  // USART1_RX
+
+}
+
+ 
+
+/**************************************************************************************/
+
+ 
+
+void USART1_Configuration(void)
+
+{
+
+    USART_InitTypeDef USART_InitStructure;
+
+
+
+    /* USARTx configuration ------------------------------------------------------*/
+
+    /* USARTx configured as follow:
+
+     *  - BaudRate = 9600 baud
+
+     *  - Word Length = 8 Bits
+
+     *  - One Stop Bit
+
+     *  - No parity
+
+     *  - Hardware flow control disabled (RTS and CTS signals)
+
+     *  - Receive and transmit enabled
+
+     */
+
+    USART_InitStructure.USART_BaudRate = 115200;
+
+    USART_InitStructure.USART_WordLength = USART_WordLength_8b;
+
+    USART_InitStructure.USART_StopBits = USART_StopBits_1;
+
+    USART_InitStructure.USART_Parity = USART_Parity_No;
+
+    USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
+
+    USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
+
+    USART_Init(USART1, &USART_InitStructure);
+
+    USART_Cmd(USART1, ENABLE);
+
+}
+
+
+
+void USART1_puts(char* s)
+
+{
+
+    while(*s) {
+
+        while(USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET);
+
+        USART_SendData(USART1, *s);
+
+        s++;
+
+    }
+
 }
 
 int main(void)
 {
 	SysTick_Config(SystemCoreClock / 100); // SysTick event each 10ms
 	init();
+
+    RCC_Configuration();
+    GPIO_Configuration();
+    USART1_Configuration();
+    USART1_puts("Hello World!\r\n");
 
 	while (1) {
 		update();
