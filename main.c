@@ -8,7 +8,6 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "main.h"
 
 static char *itoa(int value, char* result, int base);
 
